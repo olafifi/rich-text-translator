@@ -4,9 +4,19 @@ const statusBadge = document.querySelector('#statusBadge');
 const charCount = document.querySelector('#charCount');
 const toast = document.querySelector('#toast');
 const toastText = document.querySelector('#toastText');
+const colorPickerPopover = document.querySelector('#colorPickerPopover');
+const svPanel = document.querySelector('#svPanel');
+const svHandle = document.querySelector('#svHandle');
+const hueSlider = document.querySelector('#hueSlider');
+const hexColorInput = document.querySelector('#hexColorInput');
+const colorPreview = document.querySelector('#colorPreview');
+const eyedropperButton = document.querySelector('#eyedropperButton');
 let savedRange = null;
 let toastTimer = null;
 let dirtySource = null;
+let activeColorButton = null;
+let pickerInitialColor = '';
+let pickerState = { hue: 240, saturation: 0.7, value: 0.9 };
 
 const cleanHtml = (html) => {
   const template = document.createElement('template');
@@ -43,6 +53,115 @@ const colorToHex = (value) => {
   const channels = value.match(/[\d.]+/g)?.slice(0, 3).map(Number);
   if (!channels || channels.length < 3) return '';
   return `#${channels.map((channel) => Math.round(channel).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+};
+
+const hexToRgb = (hex) => {
+  const normalized = hex.replace('#', '');
+  return {
+    red: Number.parseInt(normalized.slice(0, 2), 16),
+    green: Number.parseInt(normalized.slice(2, 4), 16),
+    blue: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+};
+
+const rgbToHex = ({ red, green, blue }) => `#${[red, green, blue]
+  .map((channel) => Math.round(channel).toString(16).padStart(2, '0'))
+  .join('')
+  .toUpperCase()}`;
+
+const rgbToHsv = ({ red, green, blue }) => {
+  const channels = [red / 255, green / 255, blue / 255];
+  const max = Math.max(...channels);
+  const min = Math.min(...channels);
+  const delta = max - min;
+  let hue = 0;
+
+  if (delta) {
+    if (max === channels[0]) hue = 60 * (((channels[1] - channels[2]) / delta) % 6);
+    else if (max === channels[1]) hue = 60 * ((channels[2] - channels[0]) / delta + 2);
+    else hue = 60 * ((channels[0] - channels[1]) / delta + 4);
+  }
+
+  return {
+    hue: hue < 0 ? hue + 360 : hue,
+    saturation: max === 0 ? 0 : delta / max,
+    value: max,
+  };
+};
+
+const hsvToRgb = ({ hue, saturation, value }) => {
+  const chroma = value * saturation;
+  const section = hue / 60;
+  const x = chroma * (1 - Math.abs((section % 2) - 1));
+  const match = value - chroma;
+  const base = section < 1 ? [chroma, x, 0]
+    : section < 2 ? [x, chroma, 0]
+      : section < 3 ? [0, chroma, x]
+        : section < 4 ? [0, x, chroma]
+          : section < 5 ? [x, 0, chroma]
+            : [chroma, 0, x];
+  return {
+    red: (base[0] + match) * 255,
+    green: (base[1] + match) * 255,
+    blue: (base[2] + match) * 255,
+  };
+};
+
+const getActiveColorInput = () => activeColorButton
+  ? document.querySelector(`#${activeColorButton.dataset.colorInput}`)
+  : null;
+
+const renderColorPicker = () => {
+  const color = rgbToHex(hsvToRgb(pickerState));
+  const targetInput = getActiveColorInput();
+  hexColorInput.value = color;
+  colorPreview.style.background = color;
+  svPanel.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${pickerState.hue} 100% 50%))`;
+  svHandle.style.left = `${pickerState.saturation * 100}%`;
+  svHandle.style.top = `${(1 - pickerState.value) * 100}%`;
+  hueSlider.value = String(Math.round(pickerState.hue));
+  if (targetInput) {
+    targetInput.value = color;
+    document.querySelector(`#${targetInput.id}Bar`).style.background = color;
+  }
+};
+
+const closeColorPicker = (applyColor = true) => {
+  if (!activeColorButton) return;
+  const targetInput = getActiveColorInput();
+  const property = activeColorButton.dataset.colorProperty;
+  const changed = targetInput.value !== pickerInitialColor;
+  colorPickerPopover.hidden = true;
+  activeColorButton.classList.remove('is-active');
+  activeColorButton = null;
+  if (!applyColor && changed) {
+    targetInput.value = pickerInitialColor;
+    document.querySelector(`#${targetInput.id}Bar`).style.background = pickerInitialColor;
+  }
+  if (applyColor && changed) applyInlineStyle(property, targetInput.value);
+};
+
+const positionColorPicker = (button) => {
+  const anchor = button.getBoundingClientRect();
+  const width = colorPickerPopover.offsetWidth;
+  const height = colorPickerPopover.offsetHeight;
+  const left = Math.max(10, Math.min(anchor.left, window.innerWidth - width - 10));
+  const below = anchor.bottom + 8;
+  const top = below + height <= window.innerHeight ? below : Math.max(10, anchor.top - height - 8);
+  colorPickerPopover.style.left = `${left}px`;
+  colorPickerPopover.style.top = `${top}px`;
+};
+
+const openColorPicker = (button) => {
+  if (activeColorButton && activeColorButton !== button) closeColorPicker(true);
+  activeColorButton = button;
+  const targetInput = getActiveColorInput();
+  pickerInitialColor = targetInput.value.toUpperCase();
+  pickerState = rgbToHsv(hexToRgb(pickerInitialColor));
+  colorPickerPopover.hidden = false;
+  button.classList.add('is-active');
+  renderColorPicker();
+  positionColorPicker(button);
 };
 
 const sameStyle = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -328,18 +447,78 @@ document.querySelector('#lineHeight').addEventListener('change', (event) => {
   event.target.value = '';
 });
 
-document.querySelector('#textColor').addEventListener('input', (event) => {
-  document.querySelector('#textColorBar').style.background = event.target.value;
-});
-document.querySelector('#textColor').addEventListener('change', (event) => {
-  applyInlineStyle('color', event.target.value);
+document.querySelectorAll('.color-control').forEach((button) => {
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  });
+  button.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (activeColorButton === button) closeColorPicker(true);
+    else openColorPicker(button);
+  });
 });
 
-document.querySelector('#highlightColor').addEventListener('input', (event) => {
-  document.querySelector('#highlightColorBar').style.background = event.target.value;
+colorPickerPopover.addEventListener('pointerdown', (event) => event.stopPropagation());
+document.addEventListener('pointerdown', () => closeColorPicker(true));
+
+const updateSaturationAndValue = (event) => {
+  const bounds = svPanel.getBoundingClientRect();
+  pickerState.saturation = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+  pickerState.value = 1 - Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
+  renderColorPicker();
+};
+
+svPanel.addEventListener('pointerdown', (event) => {
+  svPanel.setPointerCapture(event.pointerId);
+  updateSaturationAndValue(event);
 });
-document.querySelector('#highlightColor').addEventListener('change', (event) => {
-  applyInlineStyle('backgroundColor', event.target.value);
+svPanel.addEventListener('pointermove', (event) => {
+  if (svPanel.hasPointerCapture(event.pointerId)) updateSaturationAndValue(event);
+});
+svPanel.addEventListener('keydown', (event) => {
+  const step = event.shiftKey ? 0.1 : 0.02;
+  if (event.key === 'ArrowLeft') pickerState.saturation = Math.max(0, pickerState.saturation - step);
+  else if (event.key === 'ArrowRight') pickerState.saturation = Math.min(1, pickerState.saturation + step);
+  else if (event.key === 'ArrowUp') pickerState.value = Math.min(1, pickerState.value + step);
+  else if (event.key === 'ArrowDown') pickerState.value = Math.max(0, pickerState.value - step);
+  else return;
+  event.preventDefault();
+  renderColorPicker();
+});
+
+hueSlider.addEventListener('input', (event) => {
+  pickerState.hue = Number(event.target.value);
+  renderColorPicker();
+});
+
+hexColorInput.addEventListener('input', (event) => {
+  let value = event.target.value.trim().toUpperCase();
+  if (!value.startsWith('#')) value = `#${value}`;
+  if (/^#[0-9A-F]{6}$/.test(value)) {
+    pickerState = rgbToHsv(hexToRgb(value));
+    renderColorPicker();
+  }
+});
+hexColorInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && /^#[0-9A-F]{6}$/i.test(hexColorInput.value)) closeColorPicker(true);
+  if (event.key === 'Escape') closeColorPicker(false);
+});
+
+eyedropperButton.disabled = !window.EyeDropper;
+eyedropperButton.addEventListener('click', async () => {
+  if (!window.EyeDropper) return;
+  try {
+    const { sRGBHex } = await new EyeDropper().open();
+    pickerState = rgbToHsv(hexToRgb(sRGBHex));
+    renderColorPicker();
+  } catch {
+    // The user cancelled the native eyedropper.
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (activeColorButton) positionColorPicker(activeColorButton);
 });
 
 editor.addEventListener('input', () => { updateCount(); setStatus(false, 'visual'); });

@@ -68,16 +68,16 @@
               <button class="tool-button" data-command="underline" type="button" title="下划线 (Ctrl+U)" aria-label="下划线"><u>U</u></button>
               <button class="tool-button" data-command="strikeThrough" type="button" title="删除线" aria-label="删除线"><s>S</s></button>
               <span class="divider" aria-hidden="true"></span>
-              <label class="color-control" title="文字颜色">
+              <button class="color-control" id="textColorButton" data-color-input="textColor" data-color-property="color" type="button" title="文字颜色" aria-label="文字颜色">
                 <span class="color-letter">A</span>
                 <span class="color-bar" id="textColorBar"></span>
-                <input id="textColor" type="color" value="#3e63dd" aria-label="文字颜色" />
-              </label>
-              <label class="color-control highlight-control" title="背景颜色">
+              </button>
+              <input id="textColor" type="hidden" value="#3E63DD" />
+              <button class="color-control highlight-control" id="highlightColorButton" data-color-input="highlightColor" data-color-property="backgroundColor" type="button" title="背景颜色" aria-label="背景颜色">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5-9 5 9m-8.6-3h7.2M5 19h14"/></svg>
                 <span class="color-bar" id="highlightColorBar"></span>
-                <input id="highlightColor" type="color" value="#fff2a8" aria-label="背景颜色" />
-              </label>
+              </button>
+              <input id="highlightColor" type="hidden" value="#FFF2A8" />
             </div>
             <div class="toolbar-row secondary-tools">
               <button class="tool-button icon-button" data-command="justifyLeft" type="button" title="左对齐" aria-label="左对齐"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h11M4 14h16M4 18h9"/></svg></button>
@@ -152,6 +152,29 @@
         <span>支持游戏富文本标签双向转换</span>
       </footer>
     </main>
+
+    <div class="color-picker-popover" id="colorPickerPopover" hidden>
+      <div class="sv-panel" id="svPanel" role="slider" aria-label="颜色饱和度和亮度" tabindex="0">
+        <span class="sv-handle" id="svHandle"></span>
+      </div>
+      <div class="color-picker-controls">
+        <button class="eyedropper-button" id="eyedropperButton" type="button" title="吸取屏幕颜色" aria-label="吸取屏幕颜色">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m19 3 2 2-4 4-2-2 4-4ZM14 8l2 2-9 9-4 1 1-4 10-8Z"/></svg>
+        </button>
+        <span class="color-preview" id="colorPreview"></span>
+        <input class="hue-slider" id="hueSlider" type="range" min="0" max="360" value="240" aria-label="色相" />
+      </div>
+      <label class="hex-field">
+        <span class="sr-only">HEX 色值</span>
+        <input id="hexColorInput" type="text" value="#3E63DD" maxlength="7" spellcheck="false" autocomplete="off" />
+      </label>
+      <label class="color-format-select">
+        <span class="sr-only">色值格式</span>
+        <select aria-label="色值格式">
+          <option selected>HEX</option>
+        </select>
+      </label>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
