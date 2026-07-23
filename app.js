@@ -13,6 +13,7 @@ const colorPreview = document.querySelector('#colorPreview');
 const eyedropperButton = document.querySelector('#eyedropperButton');
 let savedRange = null;
 let toastTimer = null;
+let syncTimer = null;
 let dirtySource = null;
 let activeColorButton = null;
 let pickerInitialColor = '';
@@ -301,7 +302,22 @@ const gameTextToHtml = (gameText) => {
 const setStatus = (synced, source = null) => {
   dirtySource = synced ? null : source;
   statusBadge.classList.toggle('is-dirty', !synced);
-  statusBadge.lastChild.textContent = synced ? ' 已同步' : ' 待转换';
+  statusBadge.lastChild.textContent = synced ? ' 已同步' : ' 同步中';
+};
+
+const cancelScheduledSync = () => {
+  clearTimeout(syncTimer);
+  syncTimer = null;
+};
+
+const scheduleSync = (source) => {
+  cancelScheduledSync();
+  setStatus(false, source);
+  syncTimer = setTimeout(() => {
+    syncTimer = null;
+    if (source === 'visual') convertToHtml();
+    else convertToVisual();
+  }, 80);
 };
 
 const updateCount = () => {
@@ -330,7 +346,7 @@ const runCommand = (command, value = null) => {
   saveSelection();
   updateToolbarState();
   updateCount();
-  setStatus(false, 'visual');
+  scheduleSync('visual');
 };
 
 const applyInlineStyle = (property, value) => {
@@ -363,7 +379,7 @@ const applyInlineStyle = (property, value) => {
 
   saveSelection();
   updateCount();
-  setStatus(false, 'visual');
+  scheduleSync('visual');
 };
 
 const applyBlockStyle = (property, value) => {
@@ -376,7 +392,7 @@ const applyBlockStyle = (property, value) => {
   if (node?.nodeType === Node.TEXT_NODE) node = node.parentElement;
   const block = node?.closest('p, div, h1, h2, h3, blockquote, li') || editor;
   block.style[property] = value;
-  setStatus(false, 'visual');
+  scheduleSync('visual');
 };
 
 const updateToolbarState = () => {
@@ -388,23 +404,15 @@ const updateToolbarState = () => {
   });
 };
 
-const convertToHtml = (silent = false) => {
+const convertToHtml = () => {
   output.value = htmlToGameText(editor.innerHTML);
   setStatus(true);
-  if (!silent) {
-    output.focus();
-    showToast('已转换为富文本代码');
-  }
 };
 
-const convertToVisual = (silent = false) => {
+const convertToVisual = () => {
   editor.innerHTML = gameTextToHtml(output.value) || '<p><br></p>';
   updateCount();
   setStatus(true);
-  if (!silent) {
-    editor.focus();
-    showToast('已转换为可视化富文本');
-  }
 };
 
 const showToast = (message) => {
@@ -518,16 +526,14 @@ window.addEventListener('resize', () => {
   if (activeColorButton) positionColorPicker(activeColorButton);
 });
 
-editor.addEventListener('input', () => { updateCount(); setStatus(false, 'visual'); });
+editor.addEventListener('input', () => { updateCount(); scheduleSync('visual'); });
 editor.addEventListener('keyup', () => { saveSelection(); updateToolbarState(); });
 editor.addEventListener('mouseup', () => { saveSelection(); updateToolbarState(); });
 editor.addEventListener('blur', saveSelection);
-output.addEventListener('input', () => setStatus(false, 'html'));
-
-document.querySelector('#convertToHtml').addEventListener('click', () => convertToHtml());
-document.querySelector('#convertToVisual').addEventListener('click', () => convertToVisual());
+output.addEventListener('input', () => scheduleSync('html'));
 
 document.querySelector('#clearEditor').addEventListener('click', () => {
+  cancelScheduledSync();
   editor.innerHTML = '';
   output.value = '';
   updateCount();
@@ -536,13 +542,19 @@ document.querySelector('#clearEditor').addEventListener('click', () => {
 });
 
 document.querySelector('#copyHtml').addEventListener('click', () => {
-  if (!output.value.trim() || dirtySource === 'visual') convertToHtml(true);
+  if (!output.value.trim() || dirtySource === 'visual') {
+    cancelScheduledSync();
+    convertToHtml();
+  }
   const plainText = output.value.replace(/\[\/?(?:color|size|align|lineheight|b|i|u|s|quote)(?:=[^\]]+)?\]/gi, '');
   copyPlainText(plainText, '纯文本已复制');
 });
 
 document.querySelector('#copyRichText').addEventListener('click', async () => {
-  if (dirtySource === 'visual') convertToHtml(true);
+  if (dirtySource === 'visual') {
+    cancelScheduledSync();
+    convertToHtml();
+  }
   await copyPlainText(output.value, '富文本代码已复制');
 });
 
@@ -557,4 +569,4 @@ const preferredTheme = localStorage.getItem('richly-theme')
 document.documentElement.dataset.theme = preferredTheme;
 
 updateCount();
-convertToHtml(true);
+convertToHtml();

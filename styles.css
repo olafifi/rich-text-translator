@@ -143,7 +143,8 @@ button { color: inherit; }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 66px minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
   align-items: stretch;
 }
 
@@ -387,26 +388,6 @@ button { color: inherit; }
 
 .char-count { position: absolute; right: 20px; bottom: 16px; color: var(--muted); font-size: 11px; pointer-events: none; }
 
-.convert-rail { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; }
-.convert-button {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #7081f3, #4d61df);
-  box-shadow: 0 9px 24px rgba(82, 104, 232, 0.28);
-  color: white;
-  cursor: pointer;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-
-.convert-button.reverse { border: 1px solid var(--line-strong); background: var(--surface-solid); box-shadow: var(--shadow-sm); color: var(--primary); }
-.convert-button:hover { transform: scale(1.07); box-shadow: 0 12px 30px rgba(82, 104, 232, 0.32); }
-.convert-button:active { transform: scale(0.96); }
-.convert-button svg { width: 21px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-
 .status-badge { display: flex; align-items: center; gap: 7px; color: var(--green); font-size: 12px; }
 .status-badge span { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent); }
 .status-badge.is-dirty { color: #db8b32; }
@@ -481,10 +462,7 @@ button { color: inherit; }
 
 @media (max-width: 1080px) {
   .app-shell { width: min(760px, calc(100% - 32px)); }
-  .workspace { grid-template-columns: minmax(0, 1fr); }
-  .convert-rail { min-height: 74px; flex-direction: row; }
-  .convert-button { transform: rotate(90deg); }
-  .convert-button:hover { transform: rotate(90deg) scale(1.07); }
+  .workspace { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .panel { min-height: 600px; }
 }
 
