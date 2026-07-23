@@ -449,9 +449,9 @@ document.querySelector('#lineHeight').addEventListener('change', (event) => {
 
 document.querySelectorAll('.color-control').forEach((button) => {
   button.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
     event.stopPropagation();
   });
+  button.addEventListener('mousedown', (event) => event.preventDefault());
   button.addEventListener('click', (event) => {
     event.stopPropagation();
     if (activeColorButton === button) closeColorPicker(true);
