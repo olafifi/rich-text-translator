@@ -26,38 +26,160 @@ const cleanHtml = (html) => {
   return template.innerHTML.trim();
 };
 
-const formatHtml = (html) => {
-  const compact = html.replace(/>\s+</g, '><').trim();
-  if (!compact) return '';
+const escapeHtml = (value) => value
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;');
 
-  const inlineTags = new Set(['span', 'strong', 'b', 'em', 'i', 'u', 's', 'a', 'small', 'mark', 'code']);
-  const tokens = compact.split(/(<[^>]+>)/g).filter(Boolean);
-  let depth = 0;
-  let result = '';
+const colorToHex = (value) => {
+  if (!value) return '';
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    if (hex.length === 3) return `#${[...hex].map((item) => item.repeat(2)).join('').toUpperCase()}`;
+    return `#${hex.slice(0, 6).toUpperCase()}`;
+  }
 
-  tokens.forEach((token) => {
-    if (!token.startsWith('<')) {
-      result += token;
+  const channels = value.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  if (!channels || channels.length < 3) return '';
+  return `#${channels.map((channel) => Math.round(channel).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+};
+
+const sameStyle = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
+const getNodeStyle = (node, inherited) => {
+  const style = { ...inherited };
+  const tag = node.tagName.toLowerCase();
+  const decoration = node.style.textDecoration || node.style.textDecorationLine || '';
+
+  if (['strong', 'b'].includes(tag) || ['bold', '700', '800', '900'].includes(node.style.fontWeight)) style.bold = true;
+  if (['em', 'i'].includes(tag) || node.style.fontStyle === 'italic') style.italic = true;
+  if (tag === 'u' || decoration.includes('underline')) style.underline = true;
+  if (['s', 'strike'].includes(tag) || decoration.includes('line-through')) style.strike = true;
+  if (tag === 'h1') Object.assign(style, { bold: true, size: '32' });
+  if (tag === 'h2') Object.assign(style, { bold: true, size: '24' });
+  if (tag === 'h3') Object.assign(style, { bold: true, size: '20' });
+  if (node.style.color) style.color = colorToHex(node.style.color);
+  if (node.style.backgroundColor) style.background = colorToHex(node.style.backgroundColor);
+  if (node.style.fontSize) style.size = node.style.fontSize.replace('px', '');
+  if (node.style.textAlign) style.align = node.style.textAlign;
+  if (node.style.lineHeight) style.lineHeight = node.style.lineHeight;
+
+  return style;
+};
+
+const wrapGameText = (text, style) => {
+  if (!text) return '';
+  const tags = [];
+  if (style.align && style.align !== 'left' && style.align !== 'start') tags.push(['align', style.align]);
+  if (style.lineHeight && style.lineHeight !== 'normal') tags.push(['lineheight', style.lineHeight]);
+  if (style.size) tags.push(['size', style.size]);
+  if (style.bold) tags.push(['b']);
+  if (style.italic) tags.push(['i']);
+  if (style.underline) tags.push(['u']);
+  if (style.strike) tags.push(['s']);
+  if (style.background) tags.push(['bgcolor', style.background]);
+  if (style.color) tags.push(['color', style.color]);
+
+  const opening = tags.map(([name, value]) => value ? `[${name}=${value}]` : `[${name}]`).join('');
+  const closing = [...tags].reverse().map(([name]) => `[/${name}]`).join('');
+  return `${opening}${text}${closing}`;
+};
+
+const htmlToGameText = (html) => {
+  const template = document.createElement('template');
+  template.innerHTML = cleanHtml(html);
+  const runs = [];
+  const blockTags = new Set(['p', 'div', 'h1', 'h2', 'h3', 'blockquote']);
+
+  const addRun = (text, style = {}) => {
+    if (!text) return;
+    const previous = runs.at(-1);
+    if (previous && sameStyle(previous.style, style) && !previous.text.endsWith('\n')) previous.text += text;
+    else runs.push({ text, style: { ...style } });
+  };
+
+  const walk = (node, inherited = {}, listContext = null) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      addRun(node.nodeValue.replace(/\u200B/g, ''), inherited);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === 'br') {
+      addRun('\n');
       return;
     }
 
-    const match = token.match(/^<\/?\s*([\w-]+)/);
-    const tag = match?.[1]?.toLowerCase();
-    const isClosing = /^<\//.test(token);
-    const isVoid = /\/>$/.test(token) || ['br', 'hr', 'img', 'input'].includes(tag);
-    const isInline = inlineTags.has(tag);
-
-    if (isInline) {
-      result += token;
-      return;
+    const style = getNodeStyle(node, inherited);
+    if (tag === 'li') {
+      const index = [...node.parentElement.children].indexOf(node) + 1;
+      addRun(listContext === 'ol' ? `${index}. ` : '• ');
     }
 
-    if (isClosing) depth = Math.max(0, depth - 1);
-    result += `${result && !result.endsWith('\n') ? '\n' : ''}${'  '.repeat(depth)}${token}`;
-    if (!isClosing && !isVoid) depth += 1;
-  });
+    [...node.childNodes].forEach((child) => walk(child, style, ['ol', 'ul'].includes(tag) ? tag : listContext));
+    if (blockTags.has(tag) || tag === 'li') addRun('\n');
+  };
 
-  return result.trim();
+  [...template.content.childNodes].forEach((node) => walk(node));
+  return runs.map(({ text, style }) => text === '\n' ? text : wrapGameText(text, style))
+    .join('')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+};
+
+const gameTextToHtml = (gameText) => {
+  const tagPattern = /\[(\/)?(color|bgcolor|size|align|lineheight|b|i|u|s|quote)(?:=([^\]]+))?\]/gi;
+  const stack = [];
+  let html = '';
+  let cursor = 0;
+  let match;
+
+  const openTag = (name, value = '') => {
+    const safeValue = value.replace(/["'<>]/g, '');
+    const safeColor = /^#[0-9a-f]{6}$/i.test(safeValue) ? safeValue.toUpperCase() : '#000000';
+    const safeSize = Math.min(96, Math.max(8, Number.parseFloat(safeValue) || 16));
+    const tags = {
+      color: `<span style="color:${safeColor}">`,
+      bgcolor: `<span style="background-color:${safeColor}">`,
+      size: `<span style="font-size:${safeSize}px">`,
+      align: `<span style="display:block;text-align:${['left', 'center', 'right'].includes(safeValue) ? safeValue : 'left'}">`,
+      lineheight: `<span style="display:block;line-height:${Number.parseFloat(safeValue) || 1.75}">`,
+      b: '<strong>',
+      i: '<em>',
+      u: '<u>',
+      s: '<s>',
+      quote: '<blockquote>',
+    };
+    return tags[name] || '';
+  };
+
+  const closeTag = (name) => ['color', 'bgcolor', 'size', 'align', 'lineheight'].includes(name)
+    ? '</span>'
+    : `</${{ b: 'strong', i: 'em', u: 'u', s: 's', quote: 'blockquote' }[name]}>`;
+
+  while ((match = tagPattern.exec(gameText)) !== null) {
+    html += escapeHtml(gameText.slice(cursor, match.index));
+    const [, closing, rawName, value = ''] = match;
+    const name = rawName.toLowerCase();
+    if (!closing) {
+      html += openTag(name, value);
+      stack.push(name);
+    } else {
+      const position = stack.lastIndexOf(name);
+      if (position !== -1) {
+        const pending = stack.splice(position);
+        pending.reverse().forEach((pendingName) => { html += closeTag(pendingName); });
+      }
+    }
+    cursor = tagPattern.lastIndex;
+  }
+
+  html += escapeHtml(gameText.slice(cursor));
+  stack.reverse().forEach((name) => { html += closeTag(name); });
+  return cleanHtml(html.replaceAll('\n', '<br>'));
 };
 
 const setStatus = (synced, source = null) => {
@@ -151,16 +273,16 @@ const updateToolbarState = () => {
 };
 
 const convertToHtml = (silent = false) => {
-  output.value = formatHtml(cleanHtml(editor.innerHTML));
+  output.value = htmlToGameText(editor.innerHTML);
   setStatus(true);
   if (!silent) {
     output.focus();
-    showToast('已转换为 HTML');
+    showToast('已转换为游戏富文本');
   }
 };
 
 const convertToVisual = (silent = false) => {
-  editor.innerHTML = cleanHtml(output.value) || '<p><br></p>';
+  editor.innerHTML = gameTextToHtml(output.value) || '<p><br></p>';
   updateCount();
   setStatus(true);
   if (!silent) {
@@ -208,11 +330,15 @@ document.querySelector('#lineHeight').addEventListener('change', (event) => {
 
 document.querySelector('#textColor').addEventListener('input', (event) => {
   document.querySelector('#textColorBar').style.background = event.target.value;
+});
+document.querySelector('#textColor').addEventListener('change', (event) => {
   applyInlineStyle('color', event.target.value);
 });
 
 document.querySelector('#highlightColor').addEventListener('input', (event) => {
   document.querySelector('#highlightColorBar').style.background = event.target.value;
+});
+document.querySelector('#highlightColor').addEventListener('change', (event) => {
   applyInlineStyle('backgroundColor', event.target.value);
 });
 
@@ -222,8 +348,8 @@ editor.addEventListener('mouseup', () => { saveSelection(); updateToolbarState()
 editor.addEventListener('blur', saveSelection);
 output.addEventListener('input', () => setStatus(false, 'html'));
 
-document.querySelector('#convertToHtml').addEventListener('click', convertToHtml);
-document.querySelector('#convertToVisual').addEventListener('click', convertToVisual);
+document.querySelector('#convertToHtml').addEventListener('click', () => convertToHtml());
+document.querySelector('#convertToVisual').addEventListener('click', () => convertToVisual());
 
 document.querySelector('#clearEditor').addEventListener('click', () => {
   editor.innerHTML = '';
@@ -235,38 +361,13 @@ document.querySelector('#clearEditor').addEventListener('click', () => {
 
 document.querySelector('#copyHtml').addEventListener('click', () => {
   if (!output.value.trim() || dirtySource === 'visual') convertToHtml(true);
-  copyPlainText(output.value, 'HTML 已复制');
+  const plainText = output.value.replace(/\[\/?(?:color|bgcolor|size|align|lineheight|b|i|u|s|quote)(?:=[^\]]+)?\]/gi, '');
+  copyPlainText(plainText, '纯文本已复制');
 });
 
 document.querySelector('#copyRichText').addEventListener('click', async () => {
-  const html = cleanHtml(dirtySource === 'html' ? output.value : editor.innerHTML);
-  const container = document.createElement('div');
-  container.innerHTML = html;
-  const plain = container.innerText;
-
-  try {
-    if (window.ClipboardItem) {
-      const item = new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([plain], { type: 'text/plain' }),
-      });
-      await navigator.clipboard.write([item]);
-    } else {
-      const range = document.createRange();
-      container.style.position = 'fixed';
-      container.style.opacity = '0';
-      document.body.appendChild(container);
-      range.selectNodeContents(container);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-      document.execCommand('copy');
-      container.remove();
-    }
-    showToast('富文本已复制');
-  } catch {
-    await copyPlainText(plain, '已复制纯文本（浏览器未开放富文本剪贴板）');
-  }
+  if (dirtySource === 'visual') convertToHtml(true);
+  await copyPlainText(output.value, '游戏富文本代码已复制');
 });
 
 document.querySelector('#themeToggle').addEventListener('click', () => {
