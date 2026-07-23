@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="像翻译器一样双向转换可视化富文本与 HTML，一键复制富文本或源码。" />
+    <title>Richly · 富文本转换器</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Richly 首页">
+          <span class="brand-mark">R</span>
+          <span>Richly</span>
+        </a>
+        <div class="topbar-copy">
+          <h1>富文本转换器</h1>
+          <p>像翻译一样，在可视化文本与 HTML 之间自由转换</p>
+        </div>
+        <button class="ghost-button" id="themeToggle" type="button" aria-label="切换深浅主题" title="切换主题">
+          <svg class="icon sun-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3V1m0 22v-2M3 12H1m22 0h-2M5.64 5.64 4.22 4.22m15.56 15.56-1.42-1.42m0-12.72 1.42-1.42M4.22 19.78l1.42-1.42M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0Z"/></svg>
+          <svg class="icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15.2A9 9 0 1 1 8.8 3a7 7 0 0 0 12.2 12.2Z"/></svg>
+        </button>
+      </header>
+
+      <section class="workspace" aria-label="富文本转换工作区">
+        <article class="panel visual-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="eyebrow">VISUAL EDITOR</span>
+              <h2>可视化编辑</h2>
+            </div>
+            <button class="text-button" id="clearEditor" type="button">清空</button>
+          </div>
+
+          <div class="toolbar" role="toolbar" aria-label="文字格式工具栏">
+            <div class="toolbar-row">
+              <label class="select-control format-select" title="段落样式">
+                <span class="sr-only">段落样式</span>
+                <select id="formatBlock" aria-label="段落样式">
+                  <option value="p">正文</option>
+                  <option value="h1">标题 1</option>
+                  <option value="h2">标题 2</option>
+                  <option value="h3">标题 3</option>
+                  <option value="blockquote">引用</option>
+                </select>
+              </label>
+              <label class="select-control size-select" title="字号">
+                <span class="sr-only">字号</span>
+                <select id="fontSize" aria-label="字号">
+                  <option value="">字号</option>
+                  <option value="12px">12</option>
+                  <option value="14px">14</option>
+                  <option value="16px">16</option>
+                  <option value="18px">18</option>
+                  <option value="24px">24</option>
+                  <option value="32px">32</option>
+                  <option value="48px">48</option>
+                </select>
+              </label>
+              <span class="divider" aria-hidden="true"></span>
+              <button class="tool-button" data-command="bold" type="button" title="加粗 (Ctrl+B)" aria-label="加粗"><b>B</b></button>
+              <button class="tool-button" data-command="italic" type="button" title="斜体 (Ctrl+I)" aria-label="斜体"><i>I</i></button>
+              <button class="tool-button" data-command="underline" type="button" title="下划线 (Ctrl+U)" aria-label="下划线"><u>U</u></button>
+              <button class="tool-button" data-command="strikeThrough" type="button" title="删除线" aria-label="删除线"><s>S</s></button>
+              <span class="divider" aria-hidden="true"></span>
+              <label class="color-control" title="文字颜色">
+                <span class="color-letter">A</span>
+                <span class="color-bar" id="textColorBar"></span>
+                <input id="textColor" type="color" value="#3e63dd" aria-label="文字颜色" />
+              </label>
+              <label class="color-control highlight-control" title="背景颜色">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 15 5-9 5 9m-8.6-3h7.2M5 19h14"/></svg>
+                <span class="color-bar" id="highlightColorBar"></span>
+                <input id="highlightColor" type="color" value="#fff2a8" aria-label="背景颜色" />
+              </label>
+            </div>
+            <div class="toolbar-row secondary-tools">
+              <button class="tool-button icon-button" data-command="justifyLeft" type="button" title="左对齐" aria-label="左对齐"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h11M4 14h16M4 18h9"/></svg></button>
+              <button class="tool-button icon-button" data-command="justifyCenter" type="button" title="居中" aria-label="居中"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 10h10M4 14h16M8 18h8"/></svg></button>
+              <button class="tool-button icon-button" data-command="justifyRight" type="button" title="右对齐" aria-label="右对齐"><svg viewBox="0 0 24 24"><path d="M4 6h16M9 10h11M4 14h16m-9 4h9"/></svg></button>
+              <span class="divider" aria-hidden="true"></span>
+              <button class="tool-button icon-button" data-command="insertUnorderedList" type="button" title="无序列表" aria-label="无序列表"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+              <button class="tool-button icon-button" data-command="insertOrderedList" type="button" title="有序列表" aria-label="有序列表"><svg viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10M4 5h2v3M4 11h2l-2 3h2M4 17h2v3H4"/></svg></button>
+              <label class="select-control line-height-select" title="行距">
+                <span class="line-height-icon">↕</span>
+                <select id="lineHeight" aria-label="行距">
+                  <option value="">行距</option>
+                  <option value="1">1.0</option>
+                  <option value="1.5">1.5</option>
+                  <option value="1.75">1.75</option>
+                  <option value="2">2.0</option>
+                  <option value="2.5">2.5</option>
+                </select>
+              </label>
+              <span class="divider" aria-hidden="true"></span>
+              <button class="tool-button icon-button" data-command="undo" type="button" title="撤销" aria-label="撤销"><svg viewBox="0 0 24 24"><path d="M9 7 4 12l5 5m-5-5h9a6 6 0 0 1 6 6"/></svg></button>
+              <button class="tool-button icon-button" data-command="redo" type="button" title="重做" aria-label="重做"><svg viewBox="0 0 24 24"><path d="m15 7 5 5-5 5m5-5h-9a6 6 0 0 0-6 6"/></svg></button>
+              <button class="tool-button icon-button" data-command="removeFormat" type="button" title="清除格式" aria-label="清除格式"><svg viewBox="0 0 24 24"><path d="m4 20 16-16M6 4h9M10 4 7 15m5 0h7M5 20h7"/></svg></button>
+            </div>
+          </div>
+
+          <div class="editor-wrap">
+            <div id="visualEditor" class="visual-editor" contenteditable="true" spellcheck="true" aria-label="可视化富文本编辑区域">
+              <h2>让文字拥有恰到好处的表达</h2>
+              <p>在这里输入或粘贴内容，然后使用上方工具栏调整 <strong>重点</strong>、<span style="color:#3e63dd">颜色</span>、字号和排版。</p>
+              <p>点击中间的转换按钮，右侧会立即生成干净的 HTML 富文本代码。</p>
+            </div>
+            <span class="char-count" id="charCount">0 字</span>
+          </div>
+        </article>
+
+        <div class="convert-rail" aria-label="转换控制">
+          <button class="convert-button" id="convertToHtml" type="button" title="转换为 HTML" aria-label="转换为 HTML">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+          </button>
+          <button class="convert-button reverse" id="convertToVisual" type="button" title="转换为可视化富文本" aria-label="转换为可视化富文本">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m5 5-5-5 5-5"/></svg>
+          </button>
+        </div>
+
+        <article class="panel code-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="eyebrow">RICH TEXT / HTML</span>
+              <h2>富文本代码</h2>
+            </div>
+            <span class="status-badge" id="statusBadge"><span></span> 已同步</span>
+          </div>
+          <div class="code-wrap">
+            <textarea id="htmlOutput" aria-label="HTML 富文本代码" spellcheck="false" placeholder="转换后的 HTML 会出现在这里，也可以直接粘贴 HTML 后反向转换……"></textarea>
+          </div>
+          <div class="copy-actions">
+            <button class="secondary-button" id="copyHtml" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8zM5 16H4V5h11v1"/></svg>
+              复制 HTML
+            </button>
+            <button class="primary-button" id="copyRichText" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v11H8zM5 16H4V5h11v1"/></svg>
+              一键复制富文本
+            </button>
+          </div>
+          <p class="copy-hint">复制后可直接粘贴到支持富文本的编辑器中</p>
+        </article>
+      </section>
+
+      <footer class="footer-note">
+        <span>内容只在你的浏览器中处理，不会上传到服务器</span>
+        <span class="footer-dot">·</span>
+        <span>支持双向转换</span>
+      </footer>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+      <span id="toastText">已复制</span>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
