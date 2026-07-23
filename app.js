@@ -558,15 +558,5 @@ document.querySelector('#copyRichText').addEventListener('click', async () => {
   await copyPlainText(output.value, '富文本代码已复制');
 });
 
-document.querySelector('#themeToggle').addEventListener('click', () => {
-  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = nextTheme;
-  localStorage.setItem('richly-theme', nextTheme);
-});
-
-const preferredTheme = localStorage.getItem('richly-theme')
-  || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-document.documentElement.dataset.theme = preferredTheme;
-
 updateCount();
 convertToHtml();
