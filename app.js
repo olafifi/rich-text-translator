@@ -179,7 +179,6 @@ const getNodeStyle = (node, inherited) => {
   if (tag === 'h2') Object.assign(style, { bold: true, size: '24' });
   if (tag === 'h3') Object.assign(style, { bold: true, size: '20' });
   if (node.style.color) style.color = colorToHex(node.style.color);
-  if (node.style.backgroundColor) style.background = colorToHex(node.style.backgroundColor);
   if (node.style.fontSize) style.size = node.style.fontSize.replace('px', '');
   if (node.style.textAlign) style.align = node.style.textAlign;
   if (node.style.lineHeight) style.lineHeight = node.style.lineHeight;
@@ -197,7 +196,6 @@ const wrapGameText = (text, style) => {
   if (style.italic) tags.push(['i']);
   if (style.underline) tags.push(['u']);
   if (style.strike) tags.push(['s']);
-  if (style.background) tags.push(['bgcolor', style.background]);
   if (style.color) tags.push(['color', style.color]);
 
   const opening = tags.map(([name, value]) => value ? `[${name}=${value}]` : `[${name}]`).join('');
@@ -250,7 +248,7 @@ const htmlToGameText = (html) => {
 };
 
 const gameTextToHtml = (gameText) => {
-  const tagPattern = /\[(\/)?(color|bgcolor|size|align|lineheight|b|i|u|s|quote)(?:=([^\]]+))?\]/gi;
+  const tagPattern = /\[(\/)?(color|size|align|lineheight|b|i|u|s|quote)(?:=([^\]]+))?\]/gi;
   const stack = [];
   let html = '';
   let cursor = 0;
@@ -262,7 +260,6 @@ const gameTextToHtml = (gameText) => {
     const safeSize = Math.min(96, Math.max(8, Number.parseFloat(safeValue) || 16));
     const tags = {
       color: `<span style="color:${safeColor}">`,
-      bgcolor: `<span style="background-color:${safeColor}">`,
       size: `<span style="font-size:${safeSize}px">`,
       align: `<span style="display:block;text-align:${['left', 'center', 'right'].includes(safeValue) ? safeValue : 'left'}">`,
       lineheight: `<span style="display:block;line-height:${Number.parseFloat(safeValue) || 1.75}">`,
@@ -275,7 +272,7 @@ const gameTextToHtml = (gameText) => {
     return tags[name] || '';
   };
 
-  const closeTag = (name) => ['color', 'bgcolor', 'size', 'align', 'lineheight'].includes(name)
+  const closeTag = (name) => ['color', 'size', 'align', 'lineheight'].includes(name)
     ? '</span>'
     : `</${{ b: 'strong', i: 'em', u: 'u', s: 's', quote: 'blockquote' }[name]}>`;
 
@@ -540,7 +537,7 @@ document.querySelector('#clearEditor').addEventListener('click', () => {
 
 document.querySelector('#copyHtml').addEventListener('click', () => {
   if (!output.value.trim() || dirtySource === 'visual') convertToHtml(true);
-  const plainText = output.value.replace(/\[\/?(?:color|bgcolor|size|align|lineheight|b|i|u|s|quote)(?:=[^\]]+)?\]/gi, '');
+  const plainText = output.value.replace(/\[\/?(?:color|size|align|lineheight|b|i|u|s|quote)(?:=[^\]]+)?\]/gi, '');
   copyPlainText(plainText, '纯文本已复制');
 });
 

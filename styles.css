@@ -242,9 +242,6 @@ button { color: inherit; }
 
 .color-letter { font-family: Georgia, serif; font-size: 17px; }
 .color-bar { position: absolute; right: 7px; bottom: 4px; left: 7px; height: 3px; border-radius: 4px; background: #3e63dd; }
-.highlight-control svg { width: 19px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.7; }
-.highlight-control .color-bar { background: #fff2a8; }
-
 .color-picker-popover {
   position: fixed;
   z-index: 50;
