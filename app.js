@@ -393,7 +393,7 @@ const convertToHtml = (silent = false) => {
   setStatus(true);
   if (!silent) {
     output.focus();
-    showToast('已转换为游戏富文本');
+    showToast('已转换为富文本代码');
   }
 };
 
@@ -543,7 +543,7 @@ document.querySelector('#copyHtml').addEventListener('click', () => {
 
 document.querySelector('#copyRichText').addEventListener('click', async () => {
   if (dirtySource === 'visual') convertToHtml(true);
-  await copyPlainText(output.value, '游戏富文本代码已复制');
+  await copyPlainText(output.value, '富文本代码已复制');
 });
 
 document.querySelector('#themeToggle').addEventListener('click', () => {

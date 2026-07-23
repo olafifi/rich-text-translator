@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="像翻译器一样双向转换可视化文本与游戏富文本标签，一键复制 BBCode 风格代码。" />
+    <meta name="description" content="在可视化文本与方括号富文本标签之间双向转换，一键复制代码。" />
     <title>Richly · 富文本转换器</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -105,7 +105,7 @@
         </article>
 
         <div class="convert-rail" aria-label="转换控制">
-          <button class="convert-button" id="convertToHtml" type="button" title="转换为游戏富文本" aria-label="转换为游戏富文本">
+          <button class="convert-button" id="convertToHtml" type="button" title="转换为富文本代码" aria-label="转换为富文本代码">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
           </button>
           <button class="convert-button reverse" id="convertToVisual" type="button" title="转换为可视化富文本" aria-label="转换为可视化富文本">
@@ -117,12 +117,12 @@
           <div class="panel-heading">
             <div class="panel-title">
               <h2><span class="step-number">2</span>复制代码</h2>
-              <p>生成可复制的游戏富文本标签</p>
+              <p>生成可复制的富文本标签</p>
             </div>
             <span class="status-badge" id="statusBadge"><span></span> 已同步</span>
           </div>
           <div class="code-wrap">
-            <textarea id="htmlOutput" aria-label="游戏富文本代码" spellcheck="false" placeholder="转换结果显示在这里"></textarea>
+            <textarea id="htmlOutput" aria-label="富文本代码" spellcheck="false" placeholder="转换结果显示在这里"></textarea>
           </div>
           <div class="copy-actions">
             <button class="secondary-button" id="copyHtml" type="button">
@@ -134,14 +134,14 @@
               一键复制代码
             </button>
           </div>
-          <p class="copy-hint">复制后可直接粘贴到游戏配置或策划文档中</p>
+          <p class="copy-hint">复制后可直接粘贴使用</p>
         </article>
       </section>
 
       <footer class="footer-note">
         <span>内容只在你的浏览器中处理，不会上传到服务器</span>
         <span class="footer-dot">·</span>
-        <span>支持游戏富文本标签双向转换</span>
+        <span>支持富文本标签双向转换</span>
       </footer>
     </main>
 
