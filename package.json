@@ -1,0 +1,7 @@
+{
+  "name": "fifi-richly",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}
